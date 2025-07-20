@@ -4,19 +4,20 @@ from discord.ext import commands
 
 intents = discord.Intents.default()
 intents.message_content = True
-intents.members = True
+intents.members = True  # Needed to manage nicknames and roles
 
 bot = commands.Bot(command_prefix='!', intents=intents)
 
 @bot.event
 async def on_ready():
-    print(f'✅ Bot is ready. Logged in as {bot.user}')
+    print(f'Bot is ready. Logged in as {bot.user}')
 
 @bot.command()
 async def verify(ctx, *, ign):
     guild = ctx.guild
     member = ctx.author
 
+    # These roles must exist on your server
     unverified_role = discord.utils.get(guild.roles, name="🚫 Unverified")
     verified_role = discord.utils.get(guild.roles, name="✅ Verified")
 
@@ -28,12 +29,13 @@ async def verify(ctx, *, ign):
             await member.add_roles(verified_role)
         await ctx.send(f"{member.mention}, you've been verified as `{ign}`!")
     except discord.Forbidden:
-        await ctx.send("❌ I don't have permission to change your nickname or roles.")
+        await ctx.send("I don't have permission to change your nickname or roles.")
     except Exception as e:
-        await ctx.send(f"⚠️ Error: {str(e)}")
+        await ctx.send(f"Something went wrong: {str(e)}")
 
-TOKEN = os.getenv("DISCORD_BOT_TOKEN")
+# Run bot using token from environment
+TOKEN = os.getenv("DISCORD_TOKEN")
 if TOKEN:
     bot.run(TOKEN)
 else:
-    print("❌ DISCORD_BOT_TOKEN not found in environment variables.")
+    print("DISCORD_TOKEN not found in environment variables.")
