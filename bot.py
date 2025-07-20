@@ -1,43 +1,53 @@
+import os
 import discord
 from discord.ext import commands
-import os
 
+# Set up intents
 intents = discord.Intents.default()
-intents.members = True  # Needed to manage nicknames and roles
+intents.message_content = True
+intents.members = True  # Required for nicknames and roles
 
-bot = commands.Bot(command_prefix='!', intents=intents)
+# Initialize bot
+bot = commands.Bot(command_prefix="!", intents=intents)
+
+# Get the bot token from Render environment variables
+TOKEN = os.getenv("DISCORD_TOKEN")
+
 
 @bot.event
 async def on_ready():
-    print(f'Logged in as {bot.user} (ID: {bot.user.id})')
-    print('------')
+    print(f"✅ Bot is online as {bot.user}")
+
 
 @bot.command()
-async def verify(ctx, ign: str):
+async def verify(ctx, *, ign: str):
+    """Verifies a user by setting nickname and roles."""
     guild = ctx.guild
     member = ctx.author
 
-    # Fetch roles
-    verified_role = discord.utils.get(guild.roles, name="Verified")
-    unverified_role = discord.utils.get(guild.roles, name="Unverified")
+    # Role names must exactly match your server
+    unverified_role = discord.utils.get(guild.roles, name="🚫 Unverified")
+    verified_role = discord.utils.get(guild.roles, name="✅ Verified")
 
-    # Change nickname
     try:
         await member.edit(nick=ign)
+
+        if unverified_role in member.roles:
+            await member.remove_roles(unverified_role)
+
+        if verified_role not in member.roles:
+            await member.add_roles(verified_role)
+
+        await ctx.send(f"✅ {member.mention}, you've been verified as `{ign}`!")
+
     except discord.Forbidden:
-        await ctx.send("❌ I don't have permission to change your nickname.")
-        return
+        await ctx.send("⚠️ I don't have permission to change your nickname or roles.")
+    except Exception as e:
+        await ctx.send(f"❌ An error occurred: {str(e)}")
 
-    # Assign and remove roles
-    if verified_role:
-        await member.add_roles(verified_role)
+
+if __name__ == "__main__":
+    if TOKEN:
+        bot.run(TOKEN)
     else:
-        await ctx.send("❌ 'Verified' role not found.")
-
-    if unverified_role:
-        await member.remove_roles(unverified_role)
-
-    await ctx.send(f"✅ You have been verified as `{ign}`!")
-
-# Run the bot
-bot.run(os.getenv("DISCORD_TOKEN"))
+        print("❌ DISCORD_TOKEN environment variable not found.")
